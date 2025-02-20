@@ -3,14 +3,12 @@ import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
   const { status } = useSession();
   const router = useRouter();
-  const { setTheme } = useTheme();
 
   const showSession = () => {
     if (status === "authenticated") {
