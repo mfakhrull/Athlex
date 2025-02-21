@@ -22,11 +22,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Check if user is Super Admin
-  if (
-    request.nextUrl.pathname === "/create-school" &&
-    session?.role !== "Super Admin"
-  ) {
+  // Define an array of routes that need Super Admin access
+  const protectedRoutes = ["/create-school", "/schools-list"];
+
+  // Check if the current route is in the protectedRoutes array
+  if (protectedRoutes.includes(request.nextUrl.pathname) && session?.role !== "Super Admin") {
     // If not Super Admin, redirect to /home
     const redirectUrl = new URL("/", request.url);
     return NextResponse.redirect(redirectUrl);
