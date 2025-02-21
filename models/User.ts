@@ -1,17 +1,20 @@
-import  mongoose, { Schema, model } from  "mongoose";
+import mongoose, { Schema, model } from "mongoose";
 
 export interface UserDocument {
-    _id: string;
-    email: string;
-    password: string;
-    name: string;
-    phone: string;
-    image: string;
-    createdAt: Date;
-    updatedAt: Date;
-  }
+  _id: string;
+  email: string;
+  password: string;
+  name: string;
+  phone: string;
+  image: string;
+  role: "Super Admin" | "School Admin" | "Guest";  // New role field
+  schoolCode: string | null; // Field to store the school ID
+  createdAt: Date;
+  updatedAt: Date;
+}
 
-  const UserSchema = new Schema<UserDocument>({
+const UserSchema = new Schema<UserDocument>(
+  {
     email: {
       type: String,
       unique: true,
@@ -23,17 +26,33 @@ export interface UserDocument {
     },
     password: {
       type: String,
-      required: true
+      required: true,
     },
     name: {
       type: String,
-      required: [true, "Name is required"]
-    }
+      required: [true, "Name is required"],
+    },
+    image: {
+      type: String,
+      default: "", // Optional profile image field
+    },
+    role: {
+      type: String,
+      enum: ["Super Admin", "School Admin", "Guest"], // Limiting role to valid options
+      default: "Guest", // Default to "Guest"
+    },
+    schoolCode: {
+      type: String,
+      ref: "School", // Reference to the School collection
+      required: function() { return this.role === "School Admin"; }, // Only required if user is a School Admin
+      default: null,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-const  User  =  mongoose.models?.User  ||  model<UserDocument>('User', UserSchema);
-export  default  User;
+const User = mongoose.models?.User || model<UserDocument>("User", UserSchema);
+
+export default User;

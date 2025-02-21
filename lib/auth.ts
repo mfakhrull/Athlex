@@ -3,6 +3,7 @@ import User from "@/models/User";
 import type { NextAuthOptions } from "next-auth";
 import credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import type { JWT } from "next-auth/jwt";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -33,5 +34,19 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = (user as any).role; // Type assertion to avoid TypeScript error
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token && session.user) {
+        (session.user as any).role = token.role; // Type assertion to avoid TypeScript error
+      }
+      return session;
+    },
   },
 };
