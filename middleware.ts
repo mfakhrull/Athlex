@@ -23,7 +23,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Define an array of routes that need Super Admin access
-  const protectedRoutes = ["/create-school", "/schools-list"];
+  const protectedRoutes = ["/create-school", "/schools-list", "/users-list", "/create-user", "/manage-user"];
 
   // Check if the current route is in the protectedRoutes array
   if (protectedRoutes.includes(request.nextUrl.pathname) && session?.role !== "Super Admin") {

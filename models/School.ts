@@ -11,6 +11,7 @@ export interface SchoolDocument {
     contactPhone: string; // Contact phone number
     contactEmail: string; // Contact email address
   };
+  isActive: boolean; // Add status field
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,6 +53,11 @@ const SchoolSchema = new Schema<SchoolDocument>(
           "Email is invalid",
         ],
       },
+    },
+    isActive: {
+      type: Boolean,
+      default: true, // New schools are active by default
+      required: true,
     },
   },
   {

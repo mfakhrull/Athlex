@@ -15,7 +15,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 // Define the schema for the form using Zod
 const formSchema = z.object({
@@ -26,6 +28,7 @@ const formSchema = z.object({
   contactPerson: z.string().min(1, { message: "Contact person is required" }),
   contactPhone: z.string().min(1, { message: "Contact phone is required" }),
   contactEmail: z.string().email({ message: "Invalid email address" }),
+  isActive: z.boolean().default(true),
 });
 
 export default function CreateSchoolPage() {
@@ -42,6 +45,7 @@ export default function CreateSchoolPage() {
       contactPerson: "",
       contactPhone: "",
       contactEmail: "",
+      isActive: true,
     },
   });
 
@@ -57,17 +61,21 @@ export default function CreateSchoolPage() {
       });
 
       if (response.ok) {
-        console.log("School created successfully");
-        router.push("/path-to-redirect-after-success"); // Change this to the path you want to redirect to
+        toast.success("School created successfully");
+        router.push("/schools-list");
+        router.refresh();
       } else {
         const data = await response.json();
-        console.error("Error creating school:", data.message);
+        toast.error("Failed to create school", {
+          description: data.message,
+        });
       }
     } catch (error) {
-      console.error("Error creating school:", error);
+      toast.error("Error creating school", {
+        description: "Please try again later",
+      });
     }
   };
-
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Create School</h1>
@@ -161,6 +169,26 @@ export default function CreateSchoolPage() {
                   <Input placeholder="Enter contact email" {...field} />
                 </FormControl>
                 <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="isActive"
+            render={({ field }) => (
+                <FormItem className="w-full xl:w-1/4 flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">Active Status</FormLabel>
+                  <FormDescription>
+                    Set whether this school is active or inactive
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
               </FormItem>
             )}
           />

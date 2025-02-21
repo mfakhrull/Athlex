@@ -41,6 +41,10 @@ const UserSchema = new Schema<UserDocument>(
       enum: ["Super Admin", "School Admin", "Guest"], // Limiting role to valid options
       default: "Guest", // Default to "Guest"
     },
+    phone: {
+      type: String,
+      default: "", 
+    },
     schoolCode: {
       type: String,
       ref: "School", // Reference to the School collection
