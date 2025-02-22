@@ -57,13 +57,15 @@ export default function UsersListPage() {
     }
   }
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.schoolCode?.toLowerCase() || "").includes(searchTerm.toLowerCase())
-  )
+  const filteredUsers = users.filter((user) => {
+    const searchTermLower = searchTerm.toLowerCase();
+    return (
+      (user?.name || "").toLowerCase().includes(searchTermLower) ||
+      (user?.email || "").toLowerCase().includes(searchTermLower) ||
+      (user?.role || "").toLowerCase().includes(searchTermLower) ||
+      ((user?.schoolCode || "").toLowerCase()).includes(searchTermLower)
+    );
+  });
 
   const getRoleBadgeColor = (role: User["role"]) => {
     switch (role) {
