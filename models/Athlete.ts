@@ -94,13 +94,7 @@ const AthleteSchema = new Schema<AthleteDocument>(
     }],
     guardianName: String,
     guardianContact: String,
-    guardianEmail: {
-      type: String,
-      match: [
-        /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-        "Please enter a valid email address",
-      ],
-    },
+    guardianEmail: String,
     address: String,
     medicalConditions: [String],
     emergencyContact: String,
