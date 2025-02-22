@@ -4,11 +4,10 @@ export interface SportDocument {
   _id: string;
   name: string;
   type: "individual" | "team";
-  schoolCode: string; // Reference to school
+  schoolCode: string;
   description?: string;
-  maxPlayersPerTeam?: number; // For team sports
-  minAge?: number;
-  maxAge?: number;
+  maxPlayersPerTeam?: number;
+  ageClasses: string[]; // Array of AgeClass IDs
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -41,14 +40,10 @@ const SportSchema = new Schema<SportDocument>(
         return this.type === "team";
       },
     },
-    minAge: {
-      type: Number,
-      default: 0,
-    },
-    maxAge: {
-      type: Number,
-      default: 100,
-    },
+    ageClasses: [{
+      type: String,
+      ref: "AgeClass",
+    }],
     isActive: {
       type: Boolean,
       default: true,
