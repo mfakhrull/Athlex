@@ -2,22 +2,22 @@
 
 import * as React from "react"
 import {
-  AudioWaveform,
+  Calendar,
+  Trophy,
+  Users,
+  Medal,
   BookOpen,
-  Bot,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  Map,
-  PieChart,
   Settings2,
-  SquareTerminal,
+  CircleUser,
+  Loader2,
 } from "lucide-react"
+import { useParams } from "next/navigation"
+import { toast } from "sonner"
 
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
+import { SeasonSwitcher } from "@/components/season-switcher"
 import {
   Sidebar,
   SidebarContent,
@@ -25,149 +25,142 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-
-// This is sample data.
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  teams: [
-    {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
-    },
-  ],
-  navMain: [
-    {
-      title: "Playground",
-      url: "#",
-      icon: SquareTerminal,
-      isActive: true,
-      items: [
-        {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Models",
-      url: "#",
-      icon: Bot,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
-    },
-  ],
-}
+import { Season } from "@/interfaces/season"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const params = useParams();
+  const [seasons, setSeasons] = React.useState<Season[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchSeasons = async () => {
+      try {
+        const response = await fetch(`/api/seasons?schoolCode=${params.schoolCode}`);
+        if (response.ok) {
+          const data = await response.json();
+          setSeasons(data);
+        } else {
+          console.error("Failed to fetch seasons");
+        }
+      } catch (error) {
+        console.error("Error loading seasons");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSeasons();
+  }, [params.schoolCode]);
+
+  const navData = {
+    user: {
+      name: "mfakhrull",
+      email: "mfakhrull@example.com",
+      avatar: "/avatars/user.jpg",
+    },
+    navMain: [
+      {
+        title: "Athletes",
+        url: `/${params.schoolCode}/athletes`,
+        icon: Users,
+        items: [
+          {
+            title: "List",
+            url: `/${params.schoolCode}/athletes/list`,
+          },
+          {
+            title: "Register",
+            url: `/${params.schoolCode}/athletes/register`,
+          },
+        ],
+      },
+      {
+        title: "Sports",
+        url: `/${params.schoolCode}/sports`,
+        icon: Medal,
+        items: [
+          {
+            title: "All Sports",
+            url: `/${params.schoolCode}/sports`,
+          },
+          {
+            title: "Results",
+            url: `/${params.schoolCode}/sports/results`,
+          },
+          {
+            title: "Rankings",
+            url: `/${params.schoolCode}/sports/rankings`,
+          },
+        ],
+      },
+      {
+        title: "Documentation",
+        url: "/docs",
+        icon: BookOpen,
+        items: [
+          {
+            title: "Getting Started",
+            url: "/docs/getting-started",
+          },
+          {
+            title: "User Guide",
+            url: "/docs/guide",
+          },
+        ],
+      },
+      {
+        title: "Settings",
+        url: `/${params.schoolCode}/settings`,
+        icon: Settings2,
+        items: [
+          {
+            title: "General",
+            url: `/${params.schoolCode}/settings/general`,
+          },
+          {
+            title: "School Profile",
+            url: `/${params.schoolCode}/settings/profile`,
+          },
+          {
+            title: "Users",
+            url: `/${params.schoolCode}/settings/users`,
+          },
+        ],
+      },
+    ],
+    projects: [
+      {
+        name: "Dashboard",
+        url: `/${params.schoolCode}/dashboard`,
+        icon: Calendar,
+      },
+      {
+        name: "My Profile",
+        url: `/${params.schoolCode}/profile`,
+        icon: CircleUser,
+      },
+    ],
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <SeasonSwitcher seasons={seasons} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        <NavMain items={navData.navMain} />
+        <NavProjects projects={navData.projects} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={navData.user} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

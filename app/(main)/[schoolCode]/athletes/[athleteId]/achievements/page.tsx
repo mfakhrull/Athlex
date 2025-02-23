@@ -28,6 +28,17 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -52,21 +63,64 @@ import {
   Trash2,
   Trophy,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { useSeason } from "@/contexts/SeasonContext";
 
 interface Achievement {
   _id: string;
   title: string;
   date: string;
-  description: string;
+  description?: string;
+  season?: string; // Make season optional
+  sport: string;
+  tournament: {
+    name: string;
+    venue?: string;
+    ageClass: string;
+    level?: "SEKOLAH" | "MSSD" | "MSSN" | "MSSM" | "SUKMA";
+  };
+  result: {
+    position: number;
+    medal?: "GOLD" | "SILVER" | "BRONZE";
+    points?: number;
+    remarks?: string;
+  };
   createdAt: string;
   updatedAt: string;
+  createdBy: string;
+  updatedBy: string;
 }
 
 interface Athlete {
   _id: string;
   fullName: string;
   athleteNumber: string;
+  ageClass: string;
+  sports: {
+    sport: string;
+    joinedAt: Date;
+    isActive: boolean;
+  }[];
   achievements: Achievement[];
+}
+
+interface Sport {
+  _id: string;
+  name: string;
+  code: string;
+}
+
+interface AgeClass {
+  _id: string;
+  name: string;
+  code: string;
 }
 
 const achievementSchema = z.object({
@@ -75,6 +129,26 @@ const achievementSchema = z.object({
     required_error: "Date is required",
   }),
   description: z.string().optional(),
+  season: z.string().nullable(), // Change to nullable instead of optional
+  sport: z.string({
+    required_error: "Sport is required",
+  }),
+  tournament: z.object({
+    name: z.string().min(1, "Tournament name is required"),
+    venue: z.string().optional(),
+    ageClass: z.string({
+      required_error: "Age class is required",
+    }),
+    level: z.enum(["SEKOLAH", "MSSD", "MSSN", "MSSM", "SUKMA"], {
+      required_error: "Level is required",
+    }),
+  }),
+  result: z.object({
+    position: z.number().min(1, "Position must be at least 1"),
+    medal: z.enum(["GOLD", "SILVER", "BRONZE"]).optional(),
+    points: z.number().optional(),
+    remarks: z.string().optional(),
+  }),
 });
 
 type AchievementFormValues = z.infer<typeof achievementSchema>;
@@ -86,13 +160,18 @@ export default function AchievementsPage({
 }) {
   const resolvedParams = use(params);
   const router = useRouter();
+  const { currentSeason } = useSeason();
   const [athlete, setAthlete] = useState<Athlete | null>(null);
+  const [sports, setSports] = useState<Sport[]>([]);
+  const [ageClasses, setAgeClasses] = useState<AgeClass[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
-  const [editingAchievement, setEditingAchievement] = useState<Achievement | null>(
-    null
-  );
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [achievementToDelete, setAchievementToDelete] =
+    useState<Achievement | null>(null);
+  const [editingAchievement, setEditingAchievement] =
+    useState<Achievement | null>(null);
 
   const form = useForm<AchievementFormValues>({
     resolver: zodResolver(achievementSchema),
@@ -100,8 +179,55 @@ export default function AchievementsPage({
       title: "",
       description: "",
       date: new Date(),
+      season: currentSeason?._id || null, // Set to null instead of empty string
+      sport: "",
+      tournament: {
+        name: "",
+        venue: "",
+        ageClass: "",
+        level: "SEKOLAH",
+      },
+      result: {
+        position: 1,
+        points: 0,
+        remarks: "",
+      },
     },
   });
+
+  useEffect(() => {
+    fetchAthleteData();
+    fetchSports();
+    fetchAgeClasses();
+  }, [resolvedParams.athleteId]);
+
+  const fetchSports = async () => {
+    try {
+      const response = await fetch(
+        `/api/sports?schoolCode=${resolvedParams.schoolCode}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setSports(data);
+      }
+    } catch (error) {
+      console.error("Error loading sports:", error);
+    }
+  };
+
+  const fetchAgeClasses = async () => {
+    try {
+      const response = await fetch(
+        `/api/age-classes?schoolCode=${resolvedParams.schoolCode}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setAgeClasses(data);
+      }
+    } catch (error) {
+      console.error("Error loading age classes:", error);
+    }
+  };
 
   useEffect(() => {
     fetchAthleteData();
@@ -129,18 +255,35 @@ export default function AchievementsPage({
       title: achievement.title,
       date: new Date(achievement.date),
       description: achievement.description,
+      season: achievement.season,
+      sport: achievement.sport,
+      tournament: {
+        name: achievement.tournament.name,
+        venue: achievement.tournament.venue,
+        ageClass: achievement.tournament.ageClass,
+        level: achievement.tournament.level || "SEKOLAH",
+      },
+      result: {
+        position: achievement.result.position,
+        medal: achievement.result.medal,
+        points: achievement.result.points,
+        remarks: achievement.result.remarks,
+      },
     });
     setShowDialog(true);
   };
 
-  const handleDeleteAchievement = async (achievementId: string) => {
-    if (!confirm("Are you sure you want to delete this achievement?")) {
-      return;
-    }
+  const handleDeleteAchievement = (achievement: Achievement) => {
+    setAchievementToDelete(achievement);
+  };
 
+  const confirmDelete = async () => {
+    if (!achievementToDelete) return;
+    setIsDeleting(true);
+  
     try {
       const response = await fetch(
-        `/api/athletes/${resolvedParams.athleteId}/achievements/${achievementId}`,
+        `/api/athletes/${resolvedParams.athleteId}/achievements/${achievementToDelete._id}`,
         {
           method: "DELETE",
           headers: {
@@ -148,15 +291,21 @@ export default function AchievementsPage({
           },
         }
       );
-
-      if (response.ok) {
-        toast.success("Achievement deleted successfully");
-        fetchAthleteData();
-      } else {
-        toast.error("Failed to delete achievement");
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to delete achievement");
       }
+  
+      toast.success(data.message || "Achievement deleted successfully");
+      await fetchAthleteData();
+      setAchievementToDelete(null);
     } catch (error) {
-      toast.error("Error deleting achievement");
+      console.error("Error deleting achievement:", error);
+      toast.error(error instanceof Error ? error.message : "Error deleting achievement");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -211,7 +360,9 @@ export default function AchievementsPage({
             <Button
               variant="ghost"
               onClick={() =>
-                router.push(`/${resolvedParams.schoolCode}/athletes/${resolvedParams.athleteId}`)
+                router.push(
+                  `/${resolvedParams.schoolCode}/athletes/${resolvedParams.athleteId}`
+                )
               }
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -245,61 +396,254 @@ export default function AchievementsPage({
                   onSubmit={form.handleSubmit(onSubmit)}
                   className="space-y-4"
                 >
-                  <FormField
-                    control={form.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Title</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Achievement title" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Title</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Achievement title" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                  <FormField
-                    control={form.control}
-                    name="date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Date</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
+                    <FormField
+                      control={form.control}
+                      name="date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value ? (
+                                    format(field.value, "PPP")
+                                  ) : (
+                                    <span>Pick a date</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-auto p-0"
+                              align="start"
+                            >
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) => date > new Date()}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="sport"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Sport</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
                             <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP")
-                                ) : (
-                                  <span>Pick a date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select sport" />
+                              </SelectTrigger>
                             </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) =>
-                                date > new Date()
+                            <SelectContent>
+                              {sports.map((sport) => (
+                                <SelectItem key={sport._id} value={sport._id}>
+                                  {sport.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="tournament.level"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Level</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select level" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="SEKOLAH">SEKOLAH</SelectItem>
+                              <SelectItem value="MSSD">MSSD</SelectItem>
+                              <SelectItem value="MSSK">MSSK</SelectItem>
+                              <SelectItem value="SUKMA">SUKMA</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="tournament.name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Tournament Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Tournament name" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="tournament.venue"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Venue</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Tournament venue" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="tournament.ageClass"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Age Class</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select age class" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {ageClasses.map((ageClass) => (
+                                <SelectItem
+                                  key={ageClass._id}
+                                  value={ageClass._id}
+                                >
+                                  {ageClass.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="result.position"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Position</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={1}
+                              {...field}
+                              onChange={(e) =>
+                                field.onChange(parseInt(e.target.value))
                               }
-                              initialFocus
                             />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="result.medal"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Medal</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select medal" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="GOLD">Gold</SelectItem>
+                              <SelectItem value="SILVER">Silver</SelectItem>
+                              <SelectItem value="BRONZE">Bronze</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="result.points"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Points</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={0}
+                              {...field}
+                              onChange={(e) =>
+                                field.onChange(parseInt(e.target.value))
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <FormField
                     control={form.control}
@@ -318,6 +662,59 @@ export default function AchievementsPage({
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name="result.remarks"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Remarks</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            placeholder="Additional remarks"
+                            className="min-h-[60px]"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="season"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Season (Optional)</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value || undefined} // Handle null value
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select season (optional)" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">No Season</SelectItem>
+                              {currentSeason && (
+                                <SelectItem value={currentSeason.name}>
+                                  {currentSeason.name} (Current)
+                                </SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            Link this achievement to track season medals and
+                            points
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <DialogFooter>
                     <Button
@@ -368,7 +765,46 @@ export default function AchievementsPage({
                 <Card key={achievement._id}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle>{achievement.title}</CardTitle>
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          {achievement.title}
+                          {achievement.season &&
+                            achievement.season !== "none" && (
+                              <Badge variant="secondary" className="ml-2">
+                                {achievement.season}
+                              </Badge>
+                            )}
+                        </CardTitle>
+                        <CardDescription className="space-y-1">
+                          <div>{format(new Date(achievement.date), "PPP")}</div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Badge variant="outline">
+                              {achievement.tournament.level}
+                            </Badge>
+                            {achievement.result.medal && (
+                              <Badge
+                                variant="outline"
+                                className={cn("font-semibold", {
+                                  "text-yellow-600":
+                                    achievement.result.medal === "GOLD",
+                                  "text-gray-400":
+                                    achievement.result.medal === "SILVER",
+                                  "text-amber-700":
+                                    achievement.result.medal === "BRONZE",
+                                })}
+                              >
+                                {achievement.result.medal}
+                              </Badge>
+                            )}
+                            {achievement.result.points &&
+                              achievement.result.points > 0 && (
+                                <Badge variant="secondary">
+                                  Points: {achievement.result.points}
+                                </Badge>
+                              )}
+                          </div>
+                        </CardDescription>
+                      </div>
                       <div className="flex items-center gap-2">
                         <Button
                           variant="ghost"
@@ -380,15 +816,12 @@ export default function AchievementsPage({
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDeleteAchievement(achievement._id)}
+                          onClick={() => handleDeleteAchievement(achievement)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
-                    <CardDescription>
-                      {format(new Date(achievement.date), "PPP")}
-                    </CardDescription>
                   </CardHeader>
                   {achievement.description && (
                     <CardContent>
@@ -406,6 +839,37 @@ export default function AchievementsPage({
           )}
         </div>
       </div>
+      <AlertDialog
+        open={!!achievementToDelete}
+        onOpenChange={() => setAchievementToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the achievement &quot;
+              {achievementToDelete?.title}&quot;. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,5 +1,25 @@
 import mongoose, { Schema, model } from "mongoose";
 
+interface Achievement {
+  title: string;
+  date: Date;
+  description?: string;
+  season?: string; // Make season optional
+  sport: string; // Reference to Sport
+  tournament: {
+    name: string;
+    venue?: string;
+    ageClass: string; // Reference to AgeClass instead of category
+    level: "SEKOLAH" | "MSSD" | "MSSN" | "MSSM" | "SUKMA"; // Update level enum
+  };
+  result: {
+    position: number; // 1, 2, 3, 4...
+    medal?: "GOLD" | "SILVER" | "BRONZE"; // Optional, as not all positions get medals
+    points?: number; // Optional points awarded
+    remarks?: string;
+  };
+}
+
 export interface AthleteDocument {
   _id: string;
   athleteNumber: string; // Will be filled by School Admin
@@ -23,14 +43,72 @@ export interface AthleteDocument {
   medicalConditions?: string[];
   emergencyContact?: string;
   isActive: boolean;
-  achievements?: {
-    title: string;
-    date: Date;
-    description: string;
-  }[];
+  achievements?: Achievement[];
   createdAt: Date;
   updatedAt: Date;
 }
+
+const AchievementSchema = new Schema({
+  title: {
+    type: String,
+    required: true,
+  },
+  date: {
+    type: Date,
+    required: true,
+  },
+  description: String,
+  season: {
+    type: String,
+    ref: "Season",
+    required: false, // Make season optional
+  },
+  sport: {
+    type: String,
+    required: true,
+    ref: "Sport",
+  },
+  tournament: {
+    name: {
+      type: String,
+      required: true,
+    },
+    venue: String,
+    ageClass: {
+      type: String,
+      required: true,
+      ref: "AgeClass", // Reference to AgeClass model
+    },
+    level: {
+      type: String,
+      enum: ["SEKOLAH", "MSSD", "MSSN", "MSSM", "SUKMA"], // Update level enum
+      required: true,
+    },
+  },
+  result: {
+    position: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+    medal: {
+      type: String,
+      enum: ["GOLD", "SILVER", "BRONZE"],
+    },
+    points: Number,
+    remarks: String,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
+  createdBy: String,
+  updatedBy: String,
+});
 
 const AthleteSchema = new Schema<AthleteDocument>(
   {
@@ -77,21 +155,23 @@ const AthleteSchema = new Schema<AthleteDocument>(
       required: [true, "Age class is required"],
       ref: "AgeClass",
     },
-    sports: [{
-      sport: {
-        type: String,
-        required: true,
-        ref: "Sport",
+    sports: [
+      {
+        sport: {
+          type: String,
+          required: true,
+          ref: "Sport",
+        },
+        joinedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        isActive: {
+          type: Boolean,
+          default: true,
+        },
       },
-      joinedAt: {
-        type: Date,
-        default: Date.now,
-      },
-      isActive: {
-        type: Boolean,
-        default: true,
-      },
-    }],
+    ],
     guardianName: String,
     guardianContact: String,
     guardianEmail: String,
@@ -102,17 +182,7 @@ const AthleteSchema = new Schema<AthleteDocument>(
       type: Boolean,
       default: true,
     },
-    achievements: [{
-      title: {
-        type: String,
-        required: true,
-      },
-      date: {
-        type: Date,
-        required: true,
-      },
-      description: String,
-    }],
+    achievements: [AchievementSchema],
   },
   {
     timestamps: true,
@@ -125,6 +195,7 @@ AthleteSchema.index({ schoolCode: 1, athleteNumber: 1 }, { unique: true });
 // Create compound index for schoolCode and icNumber
 AthleteSchema.index({ schoolCode: 1, icNumber: 1 }, { unique: true });
 
-const Athlete = mongoose.models?.Athlete || model<AthleteDocument>("Athlete", AthleteSchema);
+const Athlete =
+  mongoose.models?.Athlete || model<AthleteDocument>("Athlete", AthleteSchema);
 
 export default Athlete;

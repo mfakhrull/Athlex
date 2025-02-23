@@ -3,94 +3,115 @@ import { connectDB } from "@/lib/mongodb";
 import Athlete from "@/models/Athlete";
 import mongoose from "mongoose";
 
- interface Achievement {
-      _id: mongoose.Types.ObjectId;
-      title: string;
-      date: Date;
-      description?: string;
+interface Achievement {
+  _id: mongoose.Types.ObjectId;
+  title: string;
+  date: Date;
+  description?: string;
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; achievementsId: string }> }
+) {
+  try {
+    const { id, achievementsId } = await params;
+    const validation = await validateRequest(request);
+    
+    if (!validation.isValid) {
+      return NextResponse.json(
+        { message: validation.error },
+        { status: 400 }
+      );
     }
 
-// Updated PUT method with better validation and error handling
-export async function PUT(
-    request: NextRequest,
-    { params }: { params: { id: string; achievementId: string } }
-  ) {
-    try {
-      const validation = await validateRequest(request);
-      
-      if (!validation.isValid) {
-        return NextResponse.json(
-          { message: validation.error },
-          { status: 400 }
-        );
-      }
-  
-      await connectDB();
-  
-      const auditFields = getAuditFields(request);
-      const updatedData = {
-        ...validation.data,
-        ...auditFields,
-        _id: params.achievementId,
-      };
-  
-      const athlete = await Athlete.findOneAndUpdate(
-        {
-          _id: params.id,
-          "achievements._id": params.achievementId,
-        },
-        {
-          $set: {
-            "achievements.$": updatedData,
-          },
-        },
-        {
-          new: true,
-          runValidators: true,
+    await connectDB();
+
+    const athleteObjectId = new mongoose.Types.ObjectId(id);
+    const achievementObjectId = new mongoose.Types.ObjectId(achievementsId);
+
+    const auditFields = {
+      updatedAt: new Date("2025-02-23T08:44:02Z"),
+      updatedBy: "mfakhrull"
+    };
+
+    const updatedData = {
+      ...validation.data,
+      ...auditFields,
+      _id: achievementObjectId
+    };
+
+    const result = await Athlete.updateOne(
+      {
+        _id: athleteObjectId,
+        "achievements._id": achievementObjectId
+      },
+      {
+        $set: {
+          "achievements.$": updatedData,
+          updatedAt: auditFields.updatedAt,
+          updatedBy: auditFields.updatedBy
         }
-      );
-  
-      if (!athlete) {
-        return NextResponse.json(
-          { message: "Achievement not found" },
-          { status: 404 }
-        );
       }
-  
-      const updatedAchievement = athlete.achievements.find(
-        (a: Achievement): boolean => a._id.toString() === params.achievementId
     );
-  
-      return NextResponse.json({
-        message: "Achievement updated successfully",
-        data: updatedAchievement,
-      });
-    } catch (error) {
-      return handleError(error);
+
+    if (result.modifiedCount === 0) {
+      return NextResponse.json(
+        { message: "Achievement not found" },
+        { status: 404 }
+      );
     }
+
+    return NextResponse.json({
+      message: "Achievement updated successfully",
+      data: updatedData
+    });
+  } catch (error) {
+    console.error("Operation error:", error);
+    
+    if (error instanceof mongoose.Error.CastError) {
+      return NextResponse.json(
+        { message: "Invalid ID format" },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      { message: "Failed to update achievement" },
+      { status: 500 }
+    );
   }
+}
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; achievementId: string } }
+  { params }: { params: Promise<{ id: string; achievementsId: string }> }
 ) {
   try {
+    const { id, achievementsId } = await params;
     await connectDB();
 
-    // Find the athlete and remove the achievement
-    const athlete = await Athlete.findByIdAndUpdate(
-      params.id,
+    // Convert string IDs to MongoDB ObjectIds
+    const athleteObjectId = new mongoose.Types.ObjectId(id);
+    const achievementObjectId = new mongoose.Types.ObjectId(achievementsId);
+
+    // Find and update the athlete document
+    const result = await Athlete.updateOne(
+      { _id: athleteObjectId },
       {
         $pull: {
-          achievements: { _id: params.achievementId },
+          achievements: { _id: achievementObjectId }
         },
-      },
-      { new: true }
+        $set: {
+          updatedAt: new Date("2025-02-23T08:44:02Z"),
+          updatedBy: "mfakhrull"
+        }
+      }
     );
 
-    if (!athlete) {
+    if (result.modifiedCount === 0) {
       return NextResponse.json(
-        { message: "Athlete or achievement not found" },
+        { message: "Achievement not found" },
         { status: 404 }
       );
     }
@@ -101,6 +122,14 @@ export async function DELETE(
     );
   } catch (error) {
     console.error("Error deleting achievement:", error);
+    
+    if (error instanceof mongoose.Error.CastError) {
+      return NextResponse.json(
+        { message: "Invalid ID format" },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { message: "Failed to delete achievement" },
       { status: 500 }
@@ -110,12 +139,13 @@ export async function DELETE(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string; achievementId: string } }
+  { params }: { params: Promise<{ id: string; achievementsId: string }> }
 ) {
   try {
+    const { id, achievementsId } = await params;
     await connectDB();
 
-    const athlete = await Athlete.findById(params.id);
+    const athlete = await Athlete.findById(id);
 
     if (!athlete) {
       return NextResponse.json(
@@ -124,10 +154,8 @@ export async function GET(
       );
     }
 
-   
-
     const achievement = athlete.achievements.find(
-      (a: Achievement): boolean => a._id.toString() === params.achievementId
+      (a: Achievement): boolean => a._id.toString() === achievementsId
     );
 
     if (!achievement) {
