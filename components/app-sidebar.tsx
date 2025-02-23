@@ -10,6 +10,13 @@ import {
   Settings2,
   CircleUser,
   Loader2,
+  Award,
+  Layers,
+  Timer,
+  Home,
+  ClipboardList,
+  School,
+  UserCircle2,
 } from "lucide-react"
 import { useParams } from "next/navigation"
 import { toast } from "sonner"
@@ -60,6 +67,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     },
     navMain: [
       {
+        title: "Dashboard",
+        url: `/${params.schoolCode}/dashboard`,
+        icon: Home,
+        items: [
+          {
+            title: "Overview",
+            url: `/${params.schoolCode}/dashboard`,
+          },
+          {
+            title: "Analytics",
+            url: `/${params.schoolCode}/dashboard/analytics`,
+          },
+        ],
+      },
+      {
         title: "Athletes",
         url: `/${params.schoolCode}/athletes`,
         icon: Users,
@@ -75,10 +97,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ],
       },
       {
-        title: "Sports",
+        title: "Sports (Acara)",
         url: `/${params.schoolCode}/sports`,
         icon: Medal,
         items: [
+          {
+            title: "List and Register",
+            url: `/${params.schoolCode}/sports/register`,
+          },
           {
             title: "All Sports",
             url: `/${params.schoolCode}/sports`,
@@ -90,6 +116,75 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           {
             title: "Rankings",
             url: `/${params.schoolCode}/sports/rankings`,
+          },
+          {
+            title: "Events",
+            url: `/${params.schoolCode}/sports/events`,
+          },
+        ],
+      },
+      {
+        title: "Teams (Rumah Sukan)",
+        url: `/${params.schoolCode}/teams`,
+        icon: Layers,
+        items: [
+          {
+            title: "List and Rgister",
+            url: `/${params.schoolCode}/teams/register`,
+          },
+        ],
+      },
+      {
+        title: "Competitions",
+        url: `/${params.schoolCode}/competitions`,
+        icon: Trophy,
+        items: [
+          {
+            title: "Calendar",
+            url: `/${params.schoolCode}/competitions/calendar`,
+          },
+          {
+            title: "Results",
+            url: `/${params.schoolCode}/competitions/results`,
+          },
+          {
+            title: "Achievements",
+            url: `/${params.schoolCode}/competitions/achievements`,
+          },
+        ],
+      },
+      
+      {
+        title: "Age Classes",
+        url: `/${params.schoolCode}/age-classes`,
+        icon: Timer,
+        items: [
+          {
+            title: "List",
+            url: `/${params.schoolCode}/age-classes`,
+          },
+          {
+            title: "Management",
+            url: `/${params.schoolCode}/age-classes/management`,
+          },
+        ],
+      },
+      {
+        title: "Records",
+        url: `/${params.schoolCode}/records`,
+        icon: ClipboardList,
+        items: [
+          {
+            title: "School Records",
+            url: `/${params.schoolCode}/records/school`,
+          },
+          {
+            title: "Competition Records",
+            url: `/${params.schoolCode}/records/competition`,
+          },
+          {
+            title: "Achievement Records",
+            url: `/${params.schoolCode}/records/achievements`,
           },
         ],
       },
@@ -105,6 +200,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           {
             title: "User Guide",
             url: "/docs/guide",
+          },
+          {
+            title: "API Documentation",
+            url: "/docs/api",
           },
         ],
       },
@@ -125,19 +224,32 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             title: "Users",
             url: `/${params.schoolCode}/settings/users`,
           },
+          {
+            title: "Permissions",
+            url: `/${params.schoolCode}/settings/permissions`,
+          },
+          {
+            title: "Notifications",
+            url: `/${params.schoolCode}/settings/notifications`,
+          },
         ],
       },
     ],
     projects: [
       {
-        name: "Dashboard",
+        name: "School Dashboard",
         url: `/${params.schoolCode}/dashboard`,
-        icon: Calendar,
+        icon: School,
       },
       {
         name: "My Profile",
         url: `/${params.schoolCode}/profile`,
-        icon: CircleUser,
+        icon: UserCircle2,
+      },
+      {
+        name: "Current Season",
+        url: `/${params.schoolCode}/season`,
+        icon: Calendar,
       },
     ],
   }
