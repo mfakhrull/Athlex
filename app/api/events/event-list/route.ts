@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Event from "@/models/Event";
+import "@/models/Team";
+import "@/models/AgeClass";
+import "@/models/Sport";
 
 // GET events with optional filters
 export async function GET(request: NextRequest) {

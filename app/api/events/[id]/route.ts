@@ -6,6 +6,11 @@ import Season from "@/models/Season";
 import Athlete from "@/models/Athlete";
 import AgeClass from "@/models/AgeClass";
 import { z } from "zod";
+import "@/models/Team";
+import "@/models/AgeClass";
+import "@/models/Athlete";
+import "@/models/Season";
+import "@/models/Sport";
 
 // GET single event
 export async function GET(

@@ -45,7 +45,7 @@ const heatSchema = z.object({
   
   const roundSchema = z.object({
     number: z.number().min(1, "Round number is required"),
-    type: z.enum(["HEATS", "QUARTERFINAL", "SEMIFINAL", "FINAL"]),
+    type: z.enum(["QUALIFYING", "QUARTERFINAL", "SEMIFINAL", "FINAL"]),
     startTime: z.date({
       required_error: "Round start time is required",
     }),
@@ -209,7 +209,7 @@ export default function CreateEventPage({ params }: CreateEventPageProps) {
       ...currentRounds,
       {
         number: currentRounds.length + 1,
-        type: "HEATS",
+        type: "QUALIFYING",
         startTime: new Date("2025-02-23T11:45:40Z"),
         status: "SCHEDULED",
       },
@@ -616,7 +616,7 @@ export default function CreateEventPage({ params }: CreateEventPageProps) {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="HEATS">Heats</SelectItem>
+                                <SelectItem value="QUALIFYING">Qualifying</SelectItem>
                                 <SelectItem value="QUARTERFINAL">Quarter Final</SelectItem>
                                 <SelectItem value="SEMIFINAL">Semi Final</SelectItem>
                                 <SelectItem value="FINAL">Final</SelectItem>

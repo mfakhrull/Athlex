@@ -1,5 +1,19 @@
 import mongoose, { Schema, model } from "mongoose";
 
+export interface RoundResult {
+  participantId: string;
+  position?: number;
+  time?: string;
+  distance?: number;
+  height?: number;
+  points?: number;
+  remarks?: string;
+  createdAt: Date;
+  createdBy: string;
+  updatedAt: Date;
+  updatedBy: string;
+}
+
 export interface EventDocument {
   _id: string;
   schoolCode: string; // Add schoolCode field
@@ -43,9 +57,11 @@ export interface EventDocument {
   }[];
   rounds?: {
     number: number;
-    type: "HEATS" | "QUARTERFINAL" | "SEMIFINAL" | "FINAL";
+    type: "QUALIFYING" | "QUARTERFINAL" | "SEMIFINAL" | "FINAL";
     startTime: Date;
     status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED";
+    qualifiedParticipantIds: string[]; // Add this to track qualified participants
+    results: RoundResult[]; // Add this to store round-specific results
   }[];
   createdAt: Date;
   createdBy: string;
@@ -175,7 +191,7 @@ const EventSchema = new Schema<EventDocument>({
     },
     type: {
       type: String,
-      enum: ["HEATS", "QUARTERFINAL", "SEMIFINAL", "FINAL"],
+      enum: ["QUALIFYING", "QUARTERFINAL", "SEMIFINAL", "FINAL"],
       required: true,
     },
     startTime: {
@@ -187,6 +203,32 @@ const EventSchema = new Schema<EventDocument>({
       enum: ["SCHEDULED", "IN_PROGRESS", "COMPLETED"],
       default: "SCHEDULED",
     },
+    qualifiedParticipantIds: [{
+      type: String,
+      ref: "Athlete",
+    }],
+    results: [{
+      participantId: {
+        type: String,
+        required: true,
+      },
+      position: Number,
+      time: String,
+      distance: Number,
+      height: Number,
+      points: Number,
+      remarks: String,
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      },
+      createdBy: String,
+      updatedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      updatedBy: String,
+    }],
   }],
   createdAt: {
     type: Date,

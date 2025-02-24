@@ -10,9 +10,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ArrowLeft, Calendar, Clock, MapPin, Medal, Users } from "lucide-react";
+
+import { ManageResultsDialog } from "@/components/event-results/manage-results-dialog";
+import { EventStatistics } from "@/components/event-statistics/event-stats";
+import { ManageHeatDialog } from "@/components/event-heats/manage-heat-dialog";
+import { ManageRoundDialog } from "@/components/event-rounds/manage-round-dialog";
+import { ManageRoundResultsButton } from "@/components/event-rounds/manage-round-results-button";
 
 interface Participant {
   _id: string;
@@ -78,8 +85,28 @@ interface Event {
   status: "DRAFT" | "PUBLISHED" | "IN_PROGRESS" | "COMPLETED";
   maxParticipants: number;
   participants: Participant[];
+  heats?: {
+    number: number;
+    startTime: string;
+    status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED";
+  }[];
+  rounds?: {
+    number: number;
+    type: "QUALIFYING" | "QUARTERFINAL" | "SEMIFINAL" | "FINAL";
+    startTime: string;
+    status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED";
+    qualifiedParticipantIds: string[];
+    results?: {
+      participantId: string;
+      position?: number;
+      time?: string;
+      distance?: number;
+      height?: number;
+      points?: number;
+      remarks?: string;
+    }[];
+  }[];
 }
-
 interface EventPageProps {
   params: Promise<{
     schoolCode: string;
@@ -93,6 +120,13 @@ export default function EventPage({ params }: EventPageProps) {
   const [event, setEvent] = useState<Event | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState("participants");
+
+  const [showResultsDialog, setShowResultsDialog] = useState(false);
+  const [showHeatDialog, setShowHeatDialog] = useState(false);
+  const [showRoundDialog, setShowRoundDialog] = useState(false);
+  const [selectedHeat, setSelectedHeat] = useState<number | null>(null);
+  const [selectedRound, setSelectedRound] = useState<number | null>(null);
 
   useEffect(() => {
     fetchEventDetails();
@@ -195,6 +229,149 @@ export default function EventPage({ params }: EventPageProps) {
     }
   };
 
+  const getQualifiedParticipantCount = (roundType: string) => {
+    switch (roundType) {
+      case "QUALIFYING":
+        return 16;
+      case "QUARTERFINAL":
+        return 8;
+      case "SEMIFINAL":
+        return 4;
+      case "FINAL":
+        return 3;
+      default:
+        return 0;
+    }
+  };
+
+  const getRoundTypeLabel = (type: string) => {
+    switch (type) {
+      case "QUALIFYING":
+        return "Qualifying Round";
+      case "QUARTERFINAL":
+        return "Quarter Finals";
+      case "SEMIFINAL":
+        return "Semi Finals";
+      case "FINAL":
+        return "Finals";
+      default:
+        return type;
+    }
+  };
+  const handleHeatsUpdate = async (heats: Event["heats"]) => {
+    try {
+      // Transform the heats data to match the API schema
+      const formattedHeats =
+        heats?.map((heat) => ({
+          number: heat.number,
+          startTime: new Date(heat.startTime).toISOString(), // Convert to ISO string
+          status: heat.status,
+          participantIds: [], // Add participant IDs if available
+        })) || [];
+
+      const response = await fetch(
+        `/api/events/${resolvedParams.eventId}/heats`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-email": "mfakhrull",
+          },
+          body: JSON.stringify({
+            heats: formattedHeats,
+            updatedAt: "2025-02-23 19:40:56",
+            updatedBy: "mfakhrull",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update heats");
+      }
+
+      await fetchEventDetails();
+      toast.success("Heats updated successfully");
+    } catch (error) {
+      console.error("Error updating heats:", error);
+      toast.error("Error updating heats");
+    }
+  };
+
+  const handleRoundsUpdate = async (rounds: NonNullable<Event["rounds"]>) => {
+    try {
+      // Transform single round into array format for API
+      const formattedRounds = [
+        {
+          number: rounds[0].number,
+          type: rounds[0].type,
+          startTime: new Date(rounds[0].startTime).toISOString(),
+          status: rounds[0].status as "SCHEDULED" | "IN_PROGRESS" | "COMPLETED",
+          qualifiedParticipantIds: rounds[0].qualifiedParticipantIds || [],
+        },
+      ];
+
+      console.log("Sending rounds data:", formattedRounds); // Debug log
+
+      const response = await fetch(
+        `/api/events/${resolvedParams.eventId}/rounds`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-email": "mfakhrull",
+          },
+          body: JSON.stringify({
+            rounds: formattedRounds,
+            updatedAt: "2025-02-24 08:07:36",
+            updatedBy: "mfakhrull",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("API Error:", errorData);
+        throw new Error(errorData.message || "Failed to update rounds");
+      }
+
+      await fetchEventDetails();
+      toast.success("Rounds updated successfully");
+    } catch (error) {
+      console.error("Error updating rounds:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Error updating rounds"
+      );
+    }
+  };
+  const handleResultsSubmit = async (data: any) => {
+    try {
+      const response = await fetch(
+        `/api/events/${resolvedParams.eventId}/results`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-email": "mfakhrull",
+          },
+          body: JSON.stringify({
+            results: data.results,
+            updatedAt: "2025-02-23 18:50:50",
+            updatedBy: "mfakhrull",
+          }),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to save results");
+
+      toast.success("Results saved successfully");
+      fetchEventDetails();
+      setShowResultsDialog(false);
+    } catch (error) {
+      toast.error("Error saving results");
+    }
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -274,21 +451,275 @@ export default function EventPage({ params }: EventPageProps) {
         </Card>
       </div>
 
-      <ParticipantsList
-        eventId={event._id}
-        participants={event.participants}
-        onAddParticipants={() => setShowAddDialog(true)}
-        onParticipantStatusChange={handleStatusChange}
-        onParticipantRemove={handleRemoveParticipant}
-      />
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-6"
+      >
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="participants">Participants</TabsTrigger>
+          <TabsTrigger value="heats">Heats</TabsTrigger>
+          <TabsTrigger value="rounds">Rounds</TabsTrigger>
+          <TabsTrigger value="results">Results</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="participants">
+          <ParticipantsList
+            eventId={event!._id}
+            participants={event!.participants}
+            onAddParticipants={() => setShowAddDialog(true)}
+            onParticipantStatusChange={handleStatusChange}
+            onParticipantRemove={handleRemoveParticipant}
+          />
+        </TabsContent>
+
+        <TabsContent value="heats">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Heats</CardTitle>
+                {event!.status !== "COMPLETED" && (
+                  <Button
+                    onClick={() => {
+                      setSelectedHeat(null);
+                      setShowHeatDialog(true);
+                    }}
+                  >
+                    Add Heat
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {event!.heats && event!.heats.length > 0 ? (
+                <div className="space-y-4">
+                  {event!.heats.map((heat) => (
+                    <div
+                      key={heat.number}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div>
+                        <h3 className="font-medium">Heat {heat.number}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(heat.startTime), "PPp")}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={
+                            heat.status === "COMPLETED"
+                              ? "success"
+                              : heat.status === "IN_PROGRESS"
+                              ? "destructive"
+                              : "secondary"
+                          }
+                        >
+                          {heat.status}
+                        </Badge>
+                        {event!.status !== "COMPLETED" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedHeat(heat.number);
+                              setShowHeatDialog(true);
+                            }}
+                          >
+                            Manage
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  No heats have been created yet
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="rounds">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Rounds</CardTitle>
+                {event!.status !== "COMPLETED" && (
+                  <Button
+                    onClick={() => {
+                      setSelectedRound(null);
+                      setShowRoundDialog(true);
+                    }}
+                  >
+                    Add Round
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {event!.rounds && event!.rounds.length > 0 ? (
+                <div className="space-y-4">
+                  {event!.rounds.map((round) => (
+                    <div
+                      key={round.number}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div>
+                        <h3 className="font-medium">{round.type}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(round.startTime), "PPp")}
+                        </p>
+                        {round.qualifiedParticipantIds?.length > 0 && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {round.qualifiedParticipantIds.length} participants
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={
+                            round.status === "COMPLETED"
+                              ? "success"
+                              : round.status === "IN_PROGRESS"
+                              ? "destructive"
+                              : "secondary"
+                          }
+                        >
+                          {round.status}
+                        </Badge>
+                        {event!.status !== "COMPLETED" && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedRound(round.number);
+                                setShowRoundDialog(true);
+                              }}
+                            >
+                              Manage
+                            </Button>
+                            <ManageRoundResultsButton
+                              eventId={event._id}
+                              round={round}
+                              participants={event.participants}
+                              eventType={event.type}
+                              onResultsUpdate={fetchEventDetails}
+                            />
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  No rounds have been created yet
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="results">
+          <div className="grid gap-6 grid-cols-1">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Final Results</CardTitle>
+                  {/* {event.status === "IN_PROGRESS" &&
+                    event.rounds?.some((r) => r.type === "FINAL") && (
+                      <Button onClick={() => setShowResultsDialog(true)}>
+                        Record Final Results
+                      </Button>
+                    )} */}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <EventStatistics
+                  participants={event.participants}
+                  eventType={event.type}
+                  finalRound={event.rounds?.find((r) => r.type === "FINAL")}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       <AddParticipantsDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
         onSubmit={handleAddParticipants}
-        eventId={event._id}
-        existingParticipants={event.participants.map((p) => p.athlete._id)}
+        eventId={event!._id}
+        existingParticipants={event!.participants.map((p) => p.athlete._id)}
         schoolCode={resolvedParams.schoolCode}
+      />
+
+      <ManageResultsDialog
+        open={showResultsDialog}
+        onOpenChange={setShowResultsDialog}
+        eventId={event._id}
+        eventType={event.type}
+        participants={event.participants}
+        onSubmit={handleResultsSubmit}
+      />
+
+      <ManageHeatDialog
+        open={showHeatDialog}
+        onOpenChange={setShowHeatDialog}
+        eventId={event._id}
+        heatNumber={selectedHeat || undefined}
+        participants={event.participants}
+        onSubmit={async (data) => {
+          await handleHeatsUpdate([data]);
+          setShowHeatDialog(false);
+          setSelectedHeat(null);
+        }}
+        initialData={
+          selectedHeat
+            ? event.heats?.find((h) => h.number === selectedHeat)
+            : undefined
+        }
+      />
+
+      <ManageRoundDialog
+        open={showRoundDialog}
+        onOpenChange={setShowRoundDialog}
+        eventId={event._id}
+        roundNumber={selectedRound || undefined}
+        participants={event.participants}
+        onSubmit={async (data) => {
+          try {
+            // Get existing results from the current round if it exists
+            const existingResults = selectedRound
+              ? event.rounds?.find((r) => r.number === selectedRound)
+                  ?.results || []
+              : [];
+
+            // Create a single round object with the form data
+            const roundData = [
+              {
+                ...data,
+                results: existingResults,
+              },
+            ];
+
+            await handleRoundsUpdate(roundData);
+            setShowRoundDialog(false);
+            setSelectedRound(null);
+          } catch (error) {
+            console.error("Error saving round:", error);
+            toast.error("Failed to save round");
+          }
+        }}
+        initialData={
+          selectedRound
+            ? event.rounds?.find((r) => r.number === selectedRound)
+            : undefined
+        }
       />
     </div>
   );

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Athlete from "@/models/Athlete";
+import "@/models/Team";
+import "@/models/AgeClass";
+import "@/models/Sport";
 
 export async function GET(request: NextRequest) {
   try {

@@ -102,6 +102,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: Medal,
         items: [
           {
+            title: "Events",
+            url: `/${params.schoolCode}/events`,
+          },
+          {
             title: "List and Register",
             url: `/${params.schoolCode}/sports/register`,
           },
@@ -117,10 +121,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             title: "Rankings",
             url: `/${params.schoolCode}/sports/rankings`,
           },
-          {
-            title: "Events",
-            url: `/${params.schoolCode}/sports/events`,
-          },
+          
         ],
       },
       {
@@ -134,41 +135,45 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           },
         ],
       },
-      {
-        title: "Competitions",
-        url: `/${params.schoolCode}/competitions`,
-        icon: Trophy,
-        items: [
-          {
-            title: "Calendar",
-            url: `/${params.schoolCode}/competitions/calendar`,
-          },
-          {
-            title: "Results",
-            url: `/${params.schoolCode}/competitions/results`,
-          },
-          {
-            title: "Achievements",
-            url: `/${params.schoolCode}/competitions/achievements`,
-          },
-        ],
-      },
+      // {
+      //   title: "Competitions",
+      //   url: `/${params.schoolCode}/competitions`,
+      //   icon: Trophy,
+      //   items: [
+      //     {
+      //       title: "Event List",
+      //       url: `/${params.schoolCode}/events`,
+      //     },
+      //     {
+      //       title: "Calendar",
+      //       url: `/${params.schoolCode}/competitions/calendar`,
+      //     },
+      //     {
+      //       title: "Results",
+      //       url: `/${params.schoolCode}/competitions/results`,
+      //     },
+      //     {
+      //       title: "Achievements",
+      //       url: `/${params.schoolCode}/competitions/achievements`,
+      //     },
+      //   ],
+      // },
       
-      {
-        title: "Age Classes",
-        url: `/${params.schoolCode}/age-classes`,
-        icon: Timer,
-        items: [
-          {
-            title: "List",
-            url: `/${params.schoolCode}/age-classes`,
-          },
-          {
-            title: "Management",
-            url: `/${params.schoolCode}/age-classes/management`,
-          },
-        ],
-      },
+      // {
+      //   title: "Age Classes",
+      //   url: `/${params.schoolCode}/age-classes`,
+      //   icon: Timer,
+      //   items: [
+      //     {
+      //       title: "List",
+      //       url: `/${params.schoolCode}/age-classes`,
+      //     },
+      //     {
+      //       title: "Management",
+      //       url: `/${params.schoolCode}/age-classes/management`,
+      //     },
+      //   ],
+      // },
       {
         title: "Records",
         url: `/${params.schoolCode}/records`,
