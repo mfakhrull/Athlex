@@ -34,7 +34,7 @@ export interface Participant {
   export interface Round {
     number: number;
     type: "QUALIFYING" | "QUARTERFINAL" | "SEMIFINAL" | "FINAL";
-    startTime: string;
+    startTime: Date;
     status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED";
     qualifiedParticipantIds: string[];
     results?: {
@@ -66,5 +66,16 @@ export interface Participant {
   }
   
 
+  
+  export interface RoundSchedule {
+    eventId: string;
+    eventName: string;
+    type: EventType;
+    roundNumber: number;
+    roundType: string;
+    startTime: Date;
+    status: string;
+    venue: string;
+  }
   
   export type EventType = "TRACK" | "FIELD" | "RELAY" | "CROSS_COUNTRY";

@@ -15,12 +15,24 @@ const roundRequestSchema = z.object({
   updatedBy: z.string(),
 });
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest) {
   try {
     await connectDB();
+    
+    // Extract ID from URL pattern /api/events/{id}/rounds
+    const id = request.url.split('/events/')[1].split('/rounds')[0];
+    
+    if (!id) {
+      return NextResponse.json(
+        {
+          message: "Event ID is required",
+          timestamp: new Date().toISOString(),
+          user: "mfakhrull",
+        },
+        { status: 400 }
+      );
+    }
+
     const data = await request.json();
     
     const validation = roundRequestSchema.safeParse(data);
@@ -36,7 +48,7 @@ export async function PATCH(
       );
     }
 
-    const event = await Event.findById(params.id);
+    const event = await Event.findById(id);
     if (!event) {
       return NextResponse.json(
         { 

@@ -118,6 +118,7 @@ export default function EventPage({ params }: EventPageProps) {
   const resolvedParams = use(params);
   const router = useRouter();
   const [event, setEvent] = useState<Event | null>(null);
+  const [formattedDates, setFormattedDates] = useState<{[key: string]: string}>({});
   const [isLoading, setIsLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("participants");
@@ -131,6 +132,35 @@ export default function EventPage({ params }: EventPageProps) {
   useEffect(() => {
     fetchEventDetails();
   }, [resolvedParams.eventId]);
+
+  useEffect(() => {
+    if (event) {
+      // Format all dates at once after component mounts
+      const dates: {[key: string]: string} = {};
+      
+      if (event.date && !isNaN(new Date(event.date).getTime())) {
+        dates.eventDate = format(new Date(event.date), "PPP");
+      }
+
+      if (event.heats) {
+        event.heats.forEach(heat => {
+          if (heat.startTime && !isNaN(new Date(heat.startTime).getTime())) {
+            dates[`heat${heat.number}`] = format(new Date(heat.startTime), "PPp");
+          }
+        });
+      }
+
+      if (event.rounds) {
+        event.rounds.forEach(round => {
+          if (round.startTime && !isNaN(new Date(round.startTime).getTime())) {
+            dates[`round${round.number}`] = format(new Date(round.startTime), "PPp");
+          }
+        });
+      }
+
+      setFormattedDates(dates);
+    }
+  }, [event]);
 
   const fetchEventDetails = async () => {
     try {
@@ -300,41 +330,50 @@ export default function EventPage({ params }: EventPageProps) {
 
   const handleRoundsUpdate = async (rounds: NonNullable<Event["rounds"]>) => {
     try {
-      // Transform single round into array format for API
+      // Convert participant _ids to athlete string IDs
+      const athleteIds = rounds[0].qualifiedParticipantIds.map((participantId) => {
+        const participant = event?.participants.find((p) => p._id === participantId);
+  
+        // If participant.athlete is a string, use that;
+        // If participant.athlete is an object, use participant.athlete._id
+        // Otherwise, just return participantId (fallback)
+        if (typeof participant?.athlete === "string") {
+          return participant.athlete;
+        } else if (participant?.athlete && typeof participant.athlete._id === "string") {
+          return participant.athlete._id;
+        }
+        return participantId;
+      });
+  
       const formattedRounds = [
         {
           number: rounds[0].number,
           type: rounds[0].type,
           startTime: new Date(rounds[0].startTime).toISOString(),
           status: rounds[0].status as "SCHEDULED" | "IN_PROGRESS" | "COMPLETED",
-          qualifiedParticipantIds: rounds[0].qualifiedParticipantIds || [],
+          // Only send string IDs for qualifiedParticipantIds
+          qualifiedParticipantIds: athleteIds,
         },
       ];
-
-      console.log("Sending rounds data:", formattedRounds); // Debug log
-
-      const response = await fetch(
-        `/api/events/${resolvedParams.eventId}/rounds`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            "x-user-email": "mfakhrull",
-          },
-          body: JSON.stringify({
-            rounds: formattedRounds,
-            updatedAt: "2025-02-24 08:07:36",
-            updatedBy: "mfakhrull",
-          }),
-        }
-      );
-
+  
+      const response = await fetch(`/api/events/${resolvedParams.eventId}/rounds`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-email": "mfakhrull",
+        },
+        body: JSON.stringify({
+          rounds: formattedRounds,
+          updatedAt: "2025-02-24 08:07:36",
+          updatedBy: "mfakhrull",
+        }),
+      });
+  
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("API Error:", errorData);
         throw new Error(errorData.message || "Failed to update rounds");
       }
-
+  
       await fetchEventDetails();
       toast.success("Rounds updated successfully");
     } catch (error) {
@@ -419,8 +458,8 @@ export default function EventPage({ params }: EventPageProps) {
               Date & Time
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p>{format(new Date(event.date), "PPP")}</p>
+          <CardContent suppressHydrationWarning>
+            <p>{formattedDates.eventDate || 'N/A'}</p>
           </CardContent>
         </Card>
 
@@ -500,8 +539,8 @@ export default function EventPage({ params }: EventPageProps) {
                     >
                       <div>
                         <h3 className="font-medium">Heat {heat.number}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(heat.startTime), "PPp")}
+                        <p className="text-sm text-muted-foreground" suppressHydrationWarning>
+                          {formattedDates[`heat${heat.number}`] || 'N/A'}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -568,8 +607,8 @@ export default function EventPage({ params }: EventPageProps) {
                     >
                       <div>
                         <h3 className="font-medium">{round.type}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(round.startTime), "PPp")}
+                        <p className="text-sm text-muted-foreground" suppressHydrationWarning>
+                          {formattedDates[`round${round.number}`] || 'N/A'}
                         </p>
                         {round.qualifiedParticipantIds?.length > 0 && (
                           <p className="text-sm text-muted-foreground mt-1">
@@ -603,7 +642,10 @@ export default function EventPage({ params }: EventPageProps) {
                             </Button>
                             <ManageRoundResultsButton
                               eventId={event._id}
-                              round={round}
+                              round={{
+                                ...round,
+                                startTime: new Date(round.startTime)
+                              }}
                               participants={event.participants}
                               eventType={event.type}
                               onResultsUpdate={fetchEventDetails}

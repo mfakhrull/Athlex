@@ -102,6 +102,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: Medal,
         items: [
           {
+            title: "Calendar",
+            url: `/${params.schoolCode}/events/calendar`,
+          },
+          {
             title: "Events",
             url: `/${params.schoolCode}/events`,
           },
