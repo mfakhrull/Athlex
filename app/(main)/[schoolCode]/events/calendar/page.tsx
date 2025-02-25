@@ -33,6 +33,8 @@ import {
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface Event {
   _id: string;
@@ -67,6 +69,7 @@ interface FilterOptions {
 export default function EventCalendarPage({ params }: { params: Promise<{ schoolCode: string }> }) {
   const { schoolCode } = use(params);
   const [rounds, setRounds] = useState<EventRound[]>([]);
+  const [allRounds, setAllRounds] = useState<EventRound[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedEvent, setSelectedEvent] = useState<string>("all");
@@ -81,8 +84,20 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
 
   useEffect(() => {
     fetchEvents();
+  }, [schoolCode]);
+
+  useEffect(() => {
     fetchRounds();
-  }, [selectedDate, selectedEvent, schoolCode, filters]);
+  }, [selectedDate, schoolCode]);
+
+  useEffect(() => {
+    const filtered = allRounds
+      .filter((round) => (selectedEvent === "all" || round.eventId === selectedEvent))
+      .filter((round) => (filters.eventType === "ALL" || round.type === filters.eventType))
+      .filter((round) => (filters.roundType === "ALL" || round.roundType === filters.roundType))
+      .filter((round) => (filters.status === "ALL" || round.status === filters.status));
+    setRounds(filtered);
+  }, [allRounds, selectedEvent, filters]);
 
   const fetchEvents = async () => {
     try {
@@ -101,16 +116,12 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
       const queryParams = new URLSearchParams({
         schoolCode,
         date: format(selectedDate, "yyyy-MM-dd"),
-        eventId: selectedEvent,
-        ...(filters.eventType !== "ALL" && { eventType: filters.eventType }),
-        ...(filters.roundType !== "ALL" && { roundType: filters.roundType }),
-        ...(filters.status !== "ALL" && { status: filters.status }),
       });
 
       const response = await fetch(`/api/events/rounds?${queryParams}`);
       if (response.ok) {
         const data = await response.json();
-        setRounds(data.rounds);
+        setAllRounds(data.rounds);
       }
     } catch (error) {
       toast.error("Error loading rounds");
@@ -168,22 +179,26 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
   };
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Event Calendar</h1>
-        <div className="flex items-center gap-4">
+    <div className="container mx-auto py-4 md:py-6 px-4 md:px-6 space-y-4 md:space-y-6">
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+      >
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Event Calendar</h1>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
           <Select
             value={selectedEvent}
             onValueChange={setSelectedEvent}
           >
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[250px] bg-background">
               <SelectValue placeholder="Filter by event" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Events</SelectItem>
               {events.map((event) => (
                 <SelectItem key={event._id} value={event._id}>
-                  {event.name}
+                  {getEventTypeIcon(event.type)} {event.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -191,96 +206,110 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
           <Button
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
+            className={cn(
+              "w-full sm:w-auto transition-colors",
+              showFilters && "bg-primary text-primary-foreground"
+            )}
           >
             <Filter className="h-4 w-4 mr-2" />
             Filters
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       {showFilters && (
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Event Type
-                </label>
-                <Select
-                  value={filters.eventType}
-                  onValueChange={(value: FilterOptions["eventType"]) =>
-                    setFilters({ ...filters, eventType: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">All Types</SelectItem>
-                    <SelectItem value="TRACK">Track</SelectItem>
-                    <SelectItem value="FIELD">Field</SelectItem>
-                    <SelectItem value="RELAY">Relay</SelectItem>
-                    <SelectItem value="CROSS_COUNTRY">Cross Country</SelectItem>
-                  </SelectContent>
-                </Select>
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+        >
+          <Card className="border-primary/20">
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium block">
+                    Event Type
+                  </label>
+                  <Select
+                    value={filters.eventType}
+                    onValueChange={(value: FilterOptions["eventType"]) =>
+                      setFilters({ ...filters, eventType: value })
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Types</SelectItem>
+                      <SelectItem value="TRACK">Track</SelectItem>
+                      <SelectItem value="FIELD">Field</SelectItem>
+                      <SelectItem value="RELAY">Relay</SelectItem>
+                      <SelectItem value="CROSS_COUNTRY">Cross Country</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium block">
+                    Round Type
+                  </label>
+                  <Select
+                    value={filters.roundType}
+                    onValueChange={(value: FilterOptions["roundType"]) =>
+                      setFilters({ ...filters, roundType: value })
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select round" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Rounds</SelectItem>
+                      <SelectItem value="QUALIFYING">Qualifying</SelectItem>
+                      <SelectItem value="QUARTERFINAL">Quarter Final</SelectItem>
+                      <SelectItem value="SEMIFINAL">Semi Final</SelectItem>
+                      <SelectItem value="FINAL">Final</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium block">
+                    Status
+                  </label>
+                  <Select
+                    value={filters.status}
+                    onValueChange={(value: FilterOptions["status"]) =>
+                      setFilters({ ...filters, status: value })
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Status</SelectItem>
+                      <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+                      <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                      <SelectItem value="COMPLETED">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Round Type
-                </label>
-                <Select
-                  value={filters.roundType}
-                  onValueChange={(value: FilterOptions["roundType"]) =>
-                    setFilters({ ...filters, roundType: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select round" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">All Rounds</SelectItem>
-                    <SelectItem value="QUALIFYING">Qualifying</SelectItem>
-                    <SelectItem value="QUARTERFINAL">Quarter Final</SelectItem>
-                    <SelectItem value="SEMIFINAL">Semi Final</SelectItem>
-                    <SelectItem value="FINAL">Final</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Status
-                </label>
-                <Select
-                  value={filters.status}
-                  onValueChange={(value: FilterOptions["status"]) =>
-                    setFilters({ ...filters, status: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">All Status</SelectItem>
-                    <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-                    <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                    <SelectItem value="COMPLETED">Completed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
 
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-4">
-          <Card>
-            <CardContent className="pt-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+        <motion.div 
+          className="lg:col-span-4"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
+          <Card className="shadow-lg hover:shadow-xl transition-shadow">
+            <CardContent className="pt-6 px-2 sm:px-6">
               <Calendar
                 mode="single"
                 selected={selectedDate}
                 onSelect={(date) => date && setSelectedDate(date)}
-                className="rounded-md border"
+                className="rounded-md mx-auto"
                 components={{
                   DayContent: (props) => {
                     const hasEvents = rounds.some(
@@ -288,13 +317,14 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
                     );
                     return (
                       <div
-                        className={`relative ${
-                          hasEvents ? "font-bold text-primary" : ""
-                        }`}
+                        className={cn(
+                          "relative flex items-center justify-center w-full h-full p-0",
+                          hasEvents && "font-bold"
+                        )}
                       >
                         {props.date.getDate()}
                         {hasEvents && (
-                          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />
+                          <span className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-primary rounded-full" />
                         )}
                       </div>
                     );
@@ -303,105 +333,132 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
               />
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
 
-        <div className="col-span-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CalendarDays className="h-5 w-5" />
+        <motion.div 
+          className="lg:col-span-8"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
+          <Card className="shadow-lg">
+            <CardHeader className="px-4 sm:px-6">
+              <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-base md:text-lg">
+                  <CalendarDays className="h-5 w-5 text-primary" />
                   Events for {format(selectedDate, "MMMM d, yyyy")}
                 </div>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 sm:px-6">
               <div className="space-y-4">
                 {rounds.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="text-center py-12 text-muted-foreground">
+                    <CalendarDays className="h-12 w-12 mx-auto mb-4 opacity-20" />
                     No events scheduled for this date
                   </div>
                 ) : (
-                  rounds.map((round) => (
-                    <Card key={`${round.eventId}-${round.roundNumber}`}>
-                      <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span>{getEventTypeIcon(round.type)}</span>
-                            <span>{round.eventName}</span>
-                          </div>
-                          <Badge variant={getStatusBadgeVariant(round.status)}>
-                            {round.status}
-                          </Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                          <div className="flex items-center gap-2">
-                            <Medal className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <p className="text-sm font-medium">
-                                {round.roundType} (#{round.roundNumber})
-                              </p>
+                  <div className="grid gap-4">
+                    {rounds.map((round, index) => (
+                      <motion.div
+                        key={`${round.eventId}-${round.roundNumber}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <Card className="hover:shadow-md transition-shadow border-l-4 border-l-primary">
+                          <CardHeader className="pb-2 px-4 sm:px-6">
+                            <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-2xl">{getEventTypeIcon(round.type)}</span>
+                                <span className="font-semibold text-base sm:text-lg">{round.eventName}</span>
+                              </div>
+                              <Badge 
+                                variant={getStatusBadgeVariant(round.status)}
+                                className="text-xs px-3 py-1"
+                              >
+                                {round.status}
+                              </Badge>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="px-4 sm:px-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                              <div className="flex items-center gap-2">
+                                <Medal className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                <div>
+                                  <p className="text-sm font-medium">
+                                    {round.roundType} (#{round.roundNumber})
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                <div>
+                                  <p className="text-sm font-medium">
+                                    {format(new Date(round.startTime), "p")}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 sm:col-span-2">
+                                <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                <div>
+                                  <p className="text-sm font-medium">{round.venue}</p>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <p className="text-sm font-medium">
-                                {format(new Date(round.startTime), "p")}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <p className="text-sm font-medium">{round.venue}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRoundClick(round)}
-                        >
-                          <Users className="h-4 w-4 mr-2" />
-                          View Participants
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRoundClick(round)}
+                              className="w-full sm:w-auto hover:bg-primary hover:text-primary-foreground transition-colors"
+                            >
+                              <Users className="h-4 w-4 mr-2" />
+                              View Participants
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </div>
                 )}
               </div>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
       </div>
 
       <Dialog open={showParticipants} onOpenChange={setShowParticipants}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl mx-4">
           <DialogHeader>
-            <DialogTitle>
-              {selectedRound?.eventName} - {selectedRound?.roundType} Participants
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <span className="text-2xl">{getEventTypeIcon(selectedRound?.type || "")}</span>
+              {selectedRound?.eventName} - {selectedRound?.roundType}
             </DialogTitle>
             <DialogDescription>
-              List of qualified participants for this round
+              Qualified participants for this round
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[400px]">
-            <div className="space-y-4">
-              {selectedRound?.qualifiedParticipants?.map((participant) => (
-                <div
+          <ScrollArea className="max-h-[60vh]">
+            <div className="space-y-3 px-1">
+              {selectedRound?.qualifiedParticipants?.map((participant, index) => (
+                <motion.div
                   key={participant._id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="p-3 sm:p-4 border rounded-lg hover:bg-accent/50 transition-colors"
                 >
-                  <div>
-                    <p className="font-medium">{participant.fullName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {participant.athleteNumber} • {participant.ageClass.name}
-                    </p>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div>
+                      <p className="font-medium">{participant.fullName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {participant.athleteNumber} • {participant.ageClass.name}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {participant.category}
+                    </Badge>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </ScrollArea>
