@@ -48,6 +48,11 @@ interface ParticipantResponse {
     _id: string;
     name: string;
   };
+  team: {
+    _id: string;
+    name: string;
+    color: string;
+  };
   result?: {
     position?: number;
     time?: string;
@@ -69,11 +74,17 @@ export async function GET(
     const event = await Event.findById<EventDocument>(id)
       .populate({
         path: "rounds.qualifiedParticipantIds",
-        select: "fullName athleteNumber gender ageClass",
-        populate: {
-          path: "ageClass",
-          select: "name",
-        },
+        select: "fullName athleteNumber gender ageClass team",
+        populate: [
+          {
+            path: "ageClass",
+            select: "name",
+          },
+          {
+            path: "team",
+            select: "name color",
+          },
+        ],
       })
       .lean();
 
@@ -111,6 +122,7 @@ export async function GET(
         athleteNumber: athlete.athleteNumber,
         gender: athlete.gender,
         ageClass: athlete.ageClass,
+        team: athlete.team,
         result: round.results?.find(
           (r: { participantId: any }) => r.participantId === athlete._id.toString()
         ),
