@@ -1,6 +1,6 @@
 import mongoose, { Schema, model } from "mongoose";
 
-interface Achievement {
+export interface Achievement {
   title: string;
   date: Date;
   description?: string;

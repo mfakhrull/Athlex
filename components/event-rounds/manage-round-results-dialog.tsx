@@ -58,22 +58,24 @@ interface RoundResultsDialogProps {
 const timePattern =
   /^(?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d)(?:\.(\d{1,3}))?$/;
 
-const roundResultSchema = z.object({
-  results: z.array(
-    z.object({
-      participantId: z.string(),
-      position: z.number().min(1).optional(),
-      time: z
-        .string()
-        .regex(timePattern, "Invalid time format (HH:MM:SS.ms)")
-        .optional(),
-      distance: z.number().min(0).optional(),
-      height: z.number().min(0).optional(),
-      points: z.number().min(0).optional(),
-      remarks: z.string().optional(),
-    })
-  ),
-});
+  const roundResultSchema = z.object({
+    results: z.array(
+      z.object({
+        participantId: z.string(),
+        position: z.number().min(1).optional(),
+        time: z
+          .union([
+            z.string().regex(timePattern, "Invalid time format (HH:MM:SS.ms)"),
+            z.literal("")
+          ])
+          .optional(),
+        distance: z.number().min(0).optional(),
+        height: z.number().min(0).optional(),
+        points: z.number().min(0).optional(),
+        remarks: z.string().optional(),
+      })
+    ),
+  });
 
 type RoundResultsFormValues = {
   results: BaseResult[];
