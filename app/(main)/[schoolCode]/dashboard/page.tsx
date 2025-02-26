@@ -40,8 +40,6 @@ export default function DashboardPage() {
   const fetchTeamMedalsData = async () => {
     try {
       setIsLoading(true);
-      
-      // Fetch athletes with their achievements and team info
       const response = await fetch(`/api/dashboard/team-medals?schoolCode=${schoolCode}`);
       
       if (!response.ok) {
@@ -49,6 +47,9 @@ export default function DashboardPage() {
       }
       
       const teamData = await response.json();
+      if (!teamData || teamData.length === 0) {
+        toast.info("No medal data available yet");
+      }
       setTeams(teamData);
     } catch (error) {
       toast.error("Error loading team rankings", {

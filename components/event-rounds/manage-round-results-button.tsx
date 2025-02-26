@@ -97,6 +97,17 @@ export function ManageRoundResultsButton({
               );
             }
 
+            // If it's a final round, create achievements
+            if (round.type === "FINAL") {
+              await fetch(`/api/events/${eventId}/finalize-results`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "x-user-email": "mfakhrull",
+                }
+              });
+            }
+
             await onResultsUpdate();
             setShowDialog(false);
           } catch (error) {

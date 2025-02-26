@@ -383,8 +383,10 @@ export default function EventPage({ params }: EventPageProps) {
       );
     }
   };
+  
   const handleResultsSubmit = async (data: any) => {
     try {
+      // First, save the results as normal
       const response = await fetch(
         `/api/events/${resolvedParams.eventId}/results`,
         {
@@ -400,9 +402,34 @@ export default function EventPage({ params }: EventPageProps) {
           }),
         }
       );
-
+  
       if (!response.ok) throw new Error("Failed to save results");
-
+  
+      // If it's a final round, create achievements
+      const currentRound = event?.rounds?.find(r => r.number === selectedRound);
+      if (currentRound?.type === "FINAL") {
+        // Call the finalize-results endpoint to create achievements
+        const achievementsResponse = await fetch(
+          `/api/events/${resolvedParams.eventId}/finalize-results`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-user-email": "mfakhrull",
+            }
+          }
+        );
+  
+        if (!achievementsResponse.ok) {
+          console.error("Warning: Achievements were not created correctly");
+        } else {
+          toast.success("Results saved and athlete achievements created");
+          fetchEventDetails();
+          setShowResultsDialog(false);
+          return;
+        }
+      }
+  
       toast.success("Results saved successfully");
       fetchEventDetails();
       setShowResultsDialog(false);

@@ -36,7 +36,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
+import { CalendarWithYear } from "@/components/ui/calendar-with-year";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -327,13 +327,14 @@ export default function AthleteRegistrationPage({
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
+                        <CalendarWithYear
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
                           disabled={(date) =>
                             date > new Date() || date < new Date("1900-01-01")
                           }
+                          defaultMonth={field.value}
                           initialFocus
                         />
                       </PopoverContent>
@@ -421,11 +422,13 @@ export default function AthleteRegistrationPage({
                       </FormControl>
                       <SelectContent>
                         {ageClasses
-                          .filter((ac) => ac.gender === form.getValues("gender"))
+                          .filter(
+                            (ac) => ac.gender === form.getValues("gender")
+                          )
                           .map((ageClass) => (
                             <SelectItem key={ageClass._id} value={ageClass._id}>
-                              {ageClass.name} ({ageClass.minAge}-{ageClass.maxAge}{" "}
-                              years)
+                              {ageClass.name} ({ageClass.minAge}-
+                              {ageClass.maxAge} years)
                             </SelectItem>
                           ))}
                       </SelectContent>
@@ -615,7 +618,9 @@ export default function AthleteRegistrationPage({
 
                 {/* Guardian Information Section */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Guardian Information</h3>
+                  <h3 className="text-lg font-semibold">
+                    Guardian Information
+                  </h3>
 
                   <FormField
                     control={form.control}
@@ -672,7 +677,9 @@ export default function AthleteRegistrationPage({
 
                 {/* Additional Information Section */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Additional Information</h3>
+                  <h3 className="text-lg font-semibold">
+                    Additional Information
+                  </h3>
 
                   <FormField
                     control={form.control}
@@ -740,7 +747,9 @@ export default function AthleteRegistrationPage({
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-base">Active Status</FormLabel>
+                          <FormLabel className="text-base">
+                            Active Status
+                          </FormLabel>
                           <FormDescription>
                             Disable to temporarily deactivate this athlete
                           </FormDescription>
