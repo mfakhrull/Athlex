@@ -62,6 +62,10 @@ interface EventRound {
       name: string;
       color: string;
     };
+    result?: {
+      position?: string | number;
+      time?: string ;
+    };
   }>;
 }
 
@@ -71,7 +75,11 @@ interface FilterOptions {
   status: "ALL" | "SCHEDULED" | "IN_PROGRESS" | "COMPLETED";
 }
 
-export default function EventCalendarPage({ params }: { params: Promise<{ schoolCode: string }> }) {
+export default function EventCalendarPage({
+  params,
+}: {
+  params: Promise<{ schoolCode: string }>;
+}) {
   const { schoolCode } = use(params);
   const [rounds, setRounds] = useState<EventRound[]>([]);
   const [allRounds, setAllRounds] = useState<EventRound[]>([]);
@@ -97,16 +105,28 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
 
   useEffect(() => {
     const filtered = allRounds
-      .filter((round) => (selectedEvent === "all" || round.eventId === selectedEvent))
-      .filter((round) => (filters.eventType === "ALL" || round.type === filters.eventType))
-      .filter((round) => (filters.roundType === "ALL" || round.roundType === filters.roundType))
-      .filter((round) => (filters.status === "ALL" || round.status === filters.status));
+      .filter(
+        (round) => selectedEvent === "all" || round.eventId === selectedEvent
+      )
+      .filter(
+        (round) =>
+          filters.eventType === "ALL" || round.type === filters.eventType
+      )
+      .filter(
+        (round) =>
+          filters.roundType === "ALL" || round.roundType === filters.roundType
+      )
+      .filter(
+        (round) => filters.status === "ALL" || round.status === filters.status
+      );
     setRounds(filtered);
   }, [allRounds, selectedEvent, filters]);
 
   const fetchEvents = async () => {
     try {
-      const response = await fetch(`/api/events/event-list?schoolCode=${schoolCode}`);
+      const response = await fetch(
+        `/api/events/event-list?schoolCode=${schoolCode}`
+      );
       if (response.ok) {
         const data = await response.json();
         setEvents(data.events);
@@ -149,7 +169,10 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
   };
 
   const handleRoundClick = async (round: EventRound) => {
-    const participants = await fetchParticipants(round.eventId, round.roundNumber);
+    const participants = await fetchParticipants(
+      round.eventId,
+      round.roundNumber
+    );
     setSelectedRound({
       ...round,
       qualifiedParticipants: participants,
@@ -185,17 +208,16 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
 
   return (
     <div className="container mx-auto py-4 md:py-6 px-4 md:px-6 space-y-4 md:space-y-6">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
       >
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Event Calendar</h1>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+          Event Calendar
+        </h1>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-          <Select
-            value={selectedEvent}
-            onValueChange={setSelectedEvent}
-          >
+          <Select value={selectedEvent} onValueChange={setSelectedEvent}>
             <SelectTrigger className="w-full sm:w-[250px] bg-background">
               <SelectValue placeholder="Filter by event" />
             </SelectTrigger>
@@ -249,7 +271,9 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
                       <SelectItem value="TRACK">Track</SelectItem>
                       <SelectItem value="FIELD">Field</SelectItem>
                       <SelectItem value="RELAY">Relay</SelectItem>
-                      <SelectItem value="CROSS_COUNTRY">Cross Country</SelectItem>
+                      <SelectItem value="CROSS_COUNTRY">
+                        Cross Country
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -269,16 +293,16 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
                     <SelectContent>
                       <SelectItem value="ALL">All Rounds</SelectItem>
                       <SelectItem value="QUALIFYING">Qualifying</SelectItem>
-                      <SelectItem value="QUARTERFINAL">Quarter Final</SelectItem>
+                      <SelectItem value="QUARTERFINAL">
+                        Quarter Final
+                      </SelectItem>
                       <SelectItem value="SEMIFINAL">Semi Final</SelectItem>
                       <SelectItem value="FINAL">Final</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium block">
-                    Status
-                  </label>
+                  <label className="text-sm font-medium block">Status</label>
                   <Select
                     value={filters.status}
                     onValueChange={(value: FilterOptions["status"]) =>
@@ -303,7 +327,7 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
-        <motion.div 
+        <motion.div
           className="lg:col-span-4"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -317,8 +341,8 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
                 className="rounded-md mx-auto"
                 components={{
                   DayContent: (props) => {
-                    const hasEvents = rounds.some(
-                      (round) => isSameDay(new Date(round.startTime), props.date)
+                    const hasEvents = rounds.some((round) =>
+                      isSameDay(new Date(round.startTime), props.date)
                     );
                     return (
                       <div
@@ -340,7 +364,7 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
           </Card>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           className="lg:col-span-8"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -374,10 +398,14 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
                           <CardHeader className="pb-2 px-4 sm:px-6">
                             <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                               <div className="flex items-center gap-2">
-                                <span className="text-2xl">{getEventTypeIcon(round.type)}</span>
-                                <span className="font-semibold text-base sm:text-lg">{round.eventName}</span>
+                                <span className="text-2xl">
+                                  {getEventTypeIcon(round.type)}
+                                </span>
+                                <span className="font-semibold text-base sm:text-lg">
+                                  {round.eventName}
+                                </span>
                               </div>
-                              <Badge 
+                              <Badge
                                 variant={getStatusBadgeVariant(round.status)}
                                 className="text-xs px-3 py-1"
                               >
@@ -406,7 +434,9 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
                               <div className="flex items-center gap-2 sm:col-span-2">
                                 <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                 <div>
-                                  <p className="text-sm font-medium">{round.venue}</p>
+                                  <p className="text-sm font-medium">
+                                    {round.venue}
+                                  </p>
                                 </div>
                               </div>
                             </div>
@@ -417,7 +447,9 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
                               className="w-full sm:w-auto hover:bg-primary hover:text-primary-foreground transition-colors"
                             >
                               <Users className="h-4 w-4 mr-2" />
-                              View Participants
+                              {round.status === "COMPLETED"
+                                ? "View Results"
+                                : "View Participants"}
                             </Button>
                           </CardContent>
                         </Card>
@@ -435,7 +467,9 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
         <DialogContent className="max-w-[95vw] sm:max-w-2xl mx-4">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <span className="text-2xl">{getEventTypeIcon(selectedRound?.type || "")}</span>
+              <span className="text-2xl">
+                {getEventTypeIcon(selectedRound?.type || "")}
+              </span>
               {selectedRound?.eventName} - {selectedRound?.roundType}
             </DialogTitle>
             <DialogDescription>
@@ -444,37 +478,58 @@ export default function EventCalendarPage({ params }: { params: Promise<{ school
           </DialogHeader>
           <ScrollArea className="max-h-[60vh]">
             <div className="space-y-3 px-1">
-              {selectedRound?.qualifiedParticipants?.map((participant, index) => (
-                <motion.div
-                  key={participant._id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="p-3 sm:p-4 border rounded-lg hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                    <div>
-                      <p className="font-medium">{participant.fullName}</p>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>{participant.athleteNumber}</span>
-                        <span>•</span>
-                        <span>{participant.ageClass.name}</span>
-                        <span>•</span>
-                        <div className="flex items-center gap-1.5">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: participant.team.color }}
-                          />
-                          <span>{participant.team.name}</span>
+              {selectedRound?.qualifiedParticipants?.map(
+                (participant, index) => (
+                  <motion.div
+                    key={participant._id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="p-3 sm:p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                      <div>
+                        <p className="font-medium">{participant.fullName}</p>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>{participant.athleteNumber}</span>
+                          <span>•</span>
+                          <span>{participant.ageClass.name}</span>
+                          <span>•</span>
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{
+                                backgroundColor: participant.team.color,
+                              }}
+                            />
+                            <span>{participant.team.name}</span>
+                          </div>
                         </div>
                       </div>
+                      <div className="flex items-center gap-2">
+                        {selectedRound.status === "COMPLETED" &&
+                          participant.result && (
+                            <Badge variant="secondary" className="mr-1">
+                              {participant.result.position
+                                ? `Position: ${participant.result.position}`
+                                : "No position"}
+                            </Badge>
+                          )}
+                        {(selectedRound.type === "TRACK" || selectedRound.type === "RELAY" || selectedRound.type === "CROSS_COUNTRY") && 
+                         selectedRound.status === "COMPLETED" ? (
+                          <Badge variant="outline" className="text-xs">
+                          {participant.result?.time || "No time recorded"}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">
+                            {participant.category}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                      {participant.category}
-                    </Badge>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                )
+              )}
             </div>
           </ScrollArea>
         </DialogContent>

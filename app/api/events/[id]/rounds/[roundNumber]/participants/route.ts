@@ -60,6 +60,8 @@ interface ParticipantResponse {
     height?: number;
     points?: number;
     remarks?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
   };
 }
 
@@ -71,6 +73,7 @@ export async function GET(
     const { id, roundNumber } = await Promise.resolve(params);
     await connectDB();
 
+    // Update the Event.findById query to include participants
     const event = await Event.findById<EventDocument>(id)
       .populate({
         path: "rounds.qualifiedParticipantIds",
@@ -86,6 +89,7 @@ export async function GET(
           },
         ],
       })
+      .select("participants rounds") // Add participants to the selection
       .lean();
 
     if (!event) {
@@ -114,20 +118,45 @@ export async function GET(
       );
     }
 
-    // Map qualified participants with their results
+    // Update the GET endpoint's participant mapping
     const qualifiedParticipants: ParticipantResponse[] =
-      round.qualifiedParticipantIds.map((athlete: any) => ({
-        _id: athlete._id,
-        fullName: athlete.fullName,
-        athleteNumber: athlete.athleteNumber,
-        gender: athlete.gender,
-        ageClass: athlete.ageClass,
-        team: athlete.team,
-        result: round.results?.find(
-          (r: { participantId: any }) => r.participantId === athlete._id.toString()
-        ),
-      }));
+      round.qualifiedParticipantIds.map((athlete: any) => {
+        // Find the participant entry that matches this athlete
+        const participant = event.participants?.find(
+          (p: any) => p.athlete === athlete._id.toString()
+        );
 
+        // Find result using participant's _id
+        const athleteResult =
+          participant &&
+          round.results?.find(
+            (r: { participantId: string }) =>
+              r.participantId === participant._id.toString()
+          );
+
+        return {
+          _id: athlete._id,
+          fullName: athlete.fullName,
+          athleteNumber: athlete.athleteNumber,
+          gender: athlete.gender,
+          ageClass: athlete.ageClass,
+          team: athlete.team,
+          result: athleteResult
+            ? {
+                position: athleteResult.position,
+                time: athleteResult.time,
+                distance: athleteResult.distance,
+                height: athleteResult.height,
+                points: athleteResult.points,
+                remarks: athleteResult.remarks,
+                createdAt: athleteResult.createdAt,
+                updatedAt: athleteResult.updatedAt,
+              }
+            : undefined,
+        };
+      });
+
+    // Update the response to include round details
     return NextResponse.json({
       participants: qualifiedParticipants,
       metadata: {
@@ -135,6 +164,7 @@ export async function GET(
         roundNumber: round.number,
         roundStatus: round.status,
         startTime: round.startTime,
+        hasResults: round.results?.length > 0,
         timestamp: "2025-02-25 04:04:59",
         user: "mfakhrull",
       },
@@ -195,14 +225,14 @@ export async function PATCH(
     const round = rounds[roundIndex];
 
     // Verify participant is qualified for this round
-    const qualifiedParticipant = round.qualifiedParticipantIds.find(
-      (p) => p._id.toString() === participantId
+    const participant = event.participants?.find(
+      (p: any) => p.athlete === participantId
     );
-
-    if (!qualifiedParticipant) {
+    
+    if (!participant) {
       return NextResponse.json(
         {
-          message: "Participant not qualified for this round",
+          message: "Participant not found",
           timestamp: "2025-02-25 04:04:59",
           user: "mfakhrull",
         },
@@ -212,7 +242,7 @@ export async function PATCH(
 
     // Update or add result
     const resultIndex = round.results?.findIndex(
-      (r) => r.participantId === participantId
+      (r) => r.participantId === participant._id.toString()
     );
 
     if (resultIndex === -1 || resultIndex === undefined) {
