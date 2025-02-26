@@ -19,6 +19,7 @@ import {
   UserCircle2,
 } from "lucide-react"
 import { useParams } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { toast } from "sonner"
 
 import { NavMain } from "@/components/nav-main"
@@ -36,6 +37,7 @@ import { Season } from "@/interfaces/season"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const params = useParams();
+  const { data: session, status } = useSession();
   const [seasons, setSeasons] = React.useState<Season[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
@@ -61,9 +63,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const navData = {
     user: {
-      name: "mfakhrull",
-      email: "mfakhrull@example.com",
-      avatar: "/avatars/user.jpg",
+      name: session?.user?.name || "Guest User",
+      email: session?.user?.email || "No email",
+      avatar: session?.user?.image || "/avatars/default.jpg",
     },
     navMain: [
       {
@@ -75,10 +77,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             title: "Overview",
             url: `/${params.schoolCode}/dashboard`,
           },
-          {
-            title: "Analytics",
-            url: `/${params.schoolCode}/dashboard/analytics`,
-          },
+          // {
+          //   title: "Analytics",
+          //   url: `/${params.schoolCode}/dashboard/analytics`,
+          // },
         ],
       },
       {
@@ -106,25 +108,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             url: `/${params.schoolCode}/events/calendar`,
           },
           {
-            title: "Events",
+            title: "Events Management",
             url: `/${params.schoolCode}/events`,
           },
           {
             title: "List and Register",
             url: `/${params.schoolCode}/sports/register`,
           },
-          {
-            title: "All Sports",
-            url: `/${params.schoolCode}/sports`,
-          },
-          {
-            title: "Results",
-            url: `/${params.schoolCode}/sports/results`,
-          },
-          {
-            title: "Rankings",
-            url: `/${params.schoolCode}/sports/rankings`,
-          },
+          // {
+          //   title: "All Sports",
+          //   url: `/${params.schoolCode}/sports`,
+          // },
+          // {
+          //   title: "Results",
+          //   url: `/${params.schoolCode}/sports/results`,
+          // },
+          // {
+          //   title: "Rankings",
+          //   url: `/${params.schoolCode}/sports/rankings`,
+          // },
           
         ],
       },
@@ -178,89 +180,89 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       //     },
       //   ],
       // },
-      {
-        title: "Records",
-        url: `/${params.schoolCode}/records`,
-        icon: ClipboardList,
-        items: [
-          {
-            title: "School Records",
-            url: `/${params.schoolCode}/records/school`,
-          },
-          {
-            title: "Competition Records",
-            url: `/${params.schoolCode}/records/competition`,
-          },
-          {
-            title: "Achievement Records",
-            url: `/${params.schoolCode}/records/achievements`,
-          },
-        ],
-      },
-      {
-        title: "Documentation",
-        url: "/docs",
-        icon: BookOpen,
-        items: [
-          {
-            title: "Getting Started",
-            url: "/docs/getting-started",
-          },
-          {
-            title: "User Guide",
-            url: "/docs/guide",
-          },
-          {
-            title: "API Documentation",
-            url: "/docs/api",
-          },
-        ],
-      },
-      {
-        title: "Settings",
-        url: `/${params.schoolCode}/settings`,
-        icon: Settings2,
-        items: [
-          {
-            title: "General",
-            url: `/${params.schoolCode}/settings/general`,
-          },
-          {
-            title: "School Profile",
-            url: `/${params.schoolCode}/settings/profile`,
-          },
-          {
-            title: "Users",
-            url: `/${params.schoolCode}/settings/users`,
-          },
-          {
-            title: "Permissions",
-            url: `/${params.schoolCode}/settings/permissions`,
-          },
-          {
-            title: "Notifications",
-            url: `/${params.schoolCode}/settings/notifications`,
-          },
-        ],
-      },
+      // {
+      //   title: "Records",
+      //   url: `/${params.schoolCode}/records`,
+      //   icon: ClipboardList,
+      //   items: [
+      //     {
+      //       title: "School Records",
+      //       url: `/${params.schoolCode}/records/school`,
+      //     },
+      //     {
+      //       title: "Competition Records",
+      //       url: `/${params.schoolCode}/records/competition`,
+      //     },
+      //     {
+      //       title: "Achievement Records",
+      //       url: `/${params.schoolCode}/records/achievements`,
+      //     },
+      //   ],
+      // },
+      // {
+      //   title: "Documentation",
+      //   url: "/docs",
+      //   icon: BookOpen,
+      //   items: [
+      //     {
+      //       title: "Getting Started",
+      //       url: "/docs/getting-started",
+      //     },
+      //     {
+      //       title: "User Guide",
+      //       url: "/docs/guide",
+      //     },
+      //     {
+      //       title: "API Documentation",
+      //       url: "/docs/api",
+      //     },
+      //   ],
+      // },
+      // {
+      //   title: "Settings",
+      //   url: `/${params.schoolCode}/settings`,
+      //   icon: Settings2,
+      //   items: [
+      //     {
+      //       title: "General",
+      //       url: `/${params.schoolCode}/settings/general`,
+      //     },
+      //     {
+      //       title: "School Profile",
+      //       url: `/${params.schoolCode}/settings/profile`,
+      //     },
+      //     {
+      //       title: "Users",
+      //       url: `/${params.schoolCode}/settings/users`,
+      //     },
+      //     {
+      //       title: "Permissions",
+      //       url: `/${params.schoolCode}/settings/permissions`,
+      //     },
+      //     {
+      //       title: "Notifications",
+      //       url: `/${params.schoolCode}/settings/notifications`,
+      //     },
+      //   ],
+      // },
     ],
-    projects: [
-      {
-        name: "School Dashboard",
-        url: `/${params.schoolCode}/dashboard`,
-        icon: School,
-      },
-      {
-        name: "My Profile",
-        url: `/${params.schoolCode}/profile`,
-        icon: UserCircle2,
-      },
-      {
-        name: "Current Season",
-        url: `/${params.schoolCode}/season`,
-        icon: Calendar,
-      },
-    ],
+    // projects: [
+    //   {
+    //     name: "School Dashboard",
+    //     url: `/${params.schoolCode}/dashboard`,
+    //     icon: School,
+    //   },
+    //   {
+    //     name: "My Profile",
+    //     url: `/${params.schoolCode}/profile`,
+    //     icon: UserCircle2,
+    //   },
+    //   {
+    //     name: "Current Season",
+    //     url: `/${params.schoolCode}/season`,
+    //     icon: Calendar,
+    //   },
+    // ],
   }
 
   if (isLoading) {
@@ -278,7 +280,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navData.navMain} />
-        <NavProjects projects={navData.projects} />
+        {/* <NavProjects projects={navData.projects} /> */}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={navData.user} />

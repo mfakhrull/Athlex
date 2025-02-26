@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+
 import Link from "next/link";
 
 export function LoginForm({
@@ -16,6 +18,7 @@ export function LoginForm({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { data: session } = useSession();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -37,10 +40,27 @@ export function LoginForm({
     }
 
     if (res?.ok) {
-      router.push("/dashboard");
+      // After successful login, we need to get the session to access user data
+      // This will trigger a client-side redirect after session is available
       router.refresh();
     }
   };
+
+  useEffect(() => {
+    if (session?.user) {
+      const user = session.user as any;
+      
+      // Redirect based on role and schoolCode
+      if (user.role === "Super Admin") {
+        router.push("/dashboard"); // Super admins go to main dashboard
+      } else if (user.role === "School Admin" && user.schoolCode) {
+        router.push(`/${user.schoolCode}/dashboard`); // School admins go to their school dashboard
+      } else if (user.role === "Guest") {
+        // For guests, decide appropriate destination
+        router.push("/dashboard"); // or some limited access area
+      }
+    }
+  }, [session, router]);
 
   return (
     <form

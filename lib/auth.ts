@@ -38,13 +38,15 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = (user as any).role; // Type assertion to avoid TypeScript error
+        token.role = (user as any).role;
+        token.schoolCode = (user as any).schoolCode; // Add schoolCode to token
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
-        (session.user as any).role = token.role; // Type assertion to avoid TypeScript error
+        (session.user as any).role = token.role;
+        (session.user as any).schoolCode = token.schoolCode; // Add schoolCode to session
       }
       return session;
     },
